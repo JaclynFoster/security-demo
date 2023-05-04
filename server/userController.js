@@ -1,12 +1,17 @@
 const bcrypt = require('bcryptjs');
 
+const SALTING_ROUNDS = 10
+
 module.exports = {
   signup: (req, res) => {
     const {email, password} = req.body
 
     let newDatabaseEntry = {}
     newDatabaseEntry.email = email
-    newDatabaseEntry.password = password
+
+    hashedPassword = bcrypt.hashSync(password, SALTING_ROUNDS)
+    newDatabaseEntry.password = hashedPassword
+
     newDatabaseEntry.destiny = destinies[Math.floor(Math.random() * destinies.length)]
     console.log('\nNew database entry: ')
     console.log(newDatabaseEntry)
@@ -18,14 +23,23 @@ module.exports = {
     let userData
 
     for (let i=0; i<database.length; i++) {
-      if (email === database[i].email && password === database[i].password) {
+      if (email === database[i].email) {
         userData = database[i]
       }
     }
-
+    
     if (!userData) {
-      res.status(200).send({success: false, message: 'bad password or username'})
-    } else {
+      res.status(200).send({success: false, message: 'Username does not exist in system'})
+      return
+    } 
+    //userData is now the object of the users data, but we still don't know if they put the right password in
+    
+    let pswdValidForFoundUser = bcrypt.compareSync(password, userData.password)
+    
+    if (!pswdValidForFoundUser) {
+      res.status(200).send({success: false, message: "password is incorrect"})
+    }
+    else {
       const destinyIntro = "Your final destiny is to "
       res.status(200).send({success: true, destiny: userData.destiny, intro: destinyIntro})
     }
